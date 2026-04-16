@@ -1,0 +1,54 @@
+Este proyecto va a ser un juego de Hide & Seek alrededor de Valencia. El juego tendrá un equipo de cazadores y uno equipo que se esconde (fugitivos). Las reglas de juego son las siguientes:
+- Los equipos se irán cambiando el rol por turnos. El juego se acaba cuando han pasado el numero indicado de rondas. Cada ronda tiene el mismo orden que la anterior. Se sortea al principio y luego se repite hasta el final. Por ejemplo (1,2,1,2,1,2) para 3 rondas.¡
+- La ciudad donde se juega es Valencia, específicamente sus paradas del metro.
+- Normas para el fugitivo:
+  - El fugitivo tiene 30 minutos para esconderse. Tan solo puede utilizar el metro para llegar a su escondite.
+  - Al terminar los 30 minutos el fugitivo debe seleccionar en el mapa la estación donde se ha escondido. Para seleccionar una estación debe estar en la zona de escondite de esa misma estación.
+  - El fugitivo no podrá cambiar su parada escondite durante todo el juego a menos que una carta se lo permita. La zona para esconderse dentro de la parada es un radio de 150m desde el centro de la estación a menos que una carta le permita ampliarlo. Todo escondite fuera de la zona será determinado como invalido. 
+  - El fugitivo puede salir de la zona una vez seleccionada para hacer retos o cualquier otra necesidad, pero deberá volver a la zona si el equipo de los cazadores se acerca. Si el equipo de los cazadores selecciona la estación que el fugitivo escogió como escondite, el fugitivo queda congelado. Mientras está congelado, el fugitivo no se puede mover, así que deberá estar atento para buscar un escondite cuando vea que el equipo de cazadores esta acercándose a él. Si un fugitivo no está en la zona de 150m cuando se seleciona la estación escondite, el fugitivo pierde automáticamente.
+- Los cazadores:
+  - No pueden separarse excepto para retos que lo indiquen. Especialmente, los cazadores no pueden separarse durante la búsqueda final en la parada escondite.
+  - Utilizaran preguntas para ir descartando el mapa poco a poco hasta encontrar al fugitivo.
+  - Los cazadores pueden seleccionar una estación para averiguar si el fugitivo está en esa estación. Si fallan obtendrán una penalización de tiempo y le regalarán una carta a su rival. Las penalizaciones vas escalando:
+    - Primer error: +5 minutos y una carta
+    - Segundo error: +15 min y una carta 
+    - Tercer error: +30 min y dos cartas
+    - Cuarto error: +1h y tres cartas
+    - Quinto error y siguientes: +2h y tres cartas
+- Las preguntas:
+  - Los cazadores pueden hacer preguntas a los fugitivos para ayudar a encontrarlos. Cada pregunta le concederá cartas al fugitivo. 
+  - Las preguntas se dividen en las siguientes categorías:
+    - Radar: Los cazadores podrán elegir entre varias distancias de radares. La seleccionaran en la aplicación y la aplicación directamente les dirá si los fugitivos están en ese radio o no respecto de su posición. Por ejemplo, si están a 1km a la redonda.
+      - Cada pregunta de esta categoría le permitirá al fugitivo robar 3 cartas y quedarse 2. 
+    - Match: Los cazadores podrán hacer preguntas sobre la parada escondite y si esta posee alguna caracterísitca en común con la parada en la que ahora están los cazadores.
+      - Esta pregunta es automática.
+      - Cada pregunta de esta categoría le permitirá al fugitivo robar 3 cartas y quedarse 1
+    - Foto: Los cazadores podrán pedir alguna foto de la estación o del escondite.
+      - Los fugitivos tienen 10 minutos para responder esta pregunta. Adicionalmente pueden pedir 5 minutos extra si esta foto requiere de entrar de nuevo en la estación.
+      - Cada pregunta de esta categoría le permitirá al fugitivo robar 2 carta y quedarse con 1.
+  - No existe ningún límite de preguntas que se puedan hacer.
+  - Cada pregunta solo se puede hacer una vez.
+- Las cartas:
+  - Tiempo: 
+    - Cada carta de tiempo añade esos minutos al tiempo final. El mazo tiene:
+      - 8 cartas de 10 minutos
+      - 5 cartas de 20 minutos
+      - 3 cartas de 30 minutos
+      - 1 carta de 1 hora
+  - Poderes:
+    - Las cartas de poderes permiten cambiar algunas reglas del juego al activarlas.
+      - Veto (3 cartas): El veto permite a los fugitivos no responder a una pregunta y que esta pregunta no pueda volver a ser preguntada en los próximos 30 minutos. Sin embargo, no cobrarán la recompensa por la pregunta ya que nunca hubo respuesta.
+      - Randomizar (3 cartas): Permite a los fugitivos cambiar la pregunta por otra de la misma categoría al azar. La pregunta que ha sido randomizada podrá volver a ser preguntada. Los fugitivos cobrarán la recompensa.
+      - Aumentar el escondite (2 cartas): Permite a los fugitivos aumentar el radio de escondite a 500m. Si el fugitivo posee ambas cartas de aumentar el escondite, podrá aumentarlo a 1km.
+      - Cambiar escondite (1 carta): Cuando los fugitivo activen esta carta podrán cambiar su parada escondite pero tan solo a aquellas paradas a las que puedan llegar en esos 10 minutos. Durante estos 10 minutos los fugitivos siguen siendo susceptibles de ser cazados. Los cazadores pueden pillarlos de camino a su nuevo escondite. Durante estos 10 minutos los cazadores no podrán hacer preguntas. Después de cambiar de escondite todas las preguntas se reinician y se pueden volver a hacer todas las preguntas que se quieran.
+      - Congelar (2 cartas): Cuando el fugitivo active esta carta los cazadores quedan congelados durante 15 minutos. Durante estos 15 minutos los cazadores no pueden moverse. Esto incluye también si están dentro de un transporte, los cazadores deberán quedarse dentro del metro/bus hasta que acabe el tiempo de congelar sin poder bajarse en ninguna parada.
+      - Duplicar (1 cartas): Duplica cualquier carta que tengas en la mano
+  - Retos:
+    - Las cartas de reto permite plantear una prueba a cambio de una recompensar si se completa y de una penalización si se falla.
+    - Los fugitivos pueden decidir si hacer ellos mismos el reto o enviárselo a los cazadores. Los cazadores tienen la obligación de empezar el reto en los próximos 20 minutos. 
+    - Los castigos y recompensas de los retos dependen de la dificultad de reto. A mayor dificultad, mayor recompensa pero también mayor castigo.
+  - Se pueden tener un máximo de 5 cartas en mano. A partir de las 5, cuando el fugitivo reciba una recompensa, este podrá descartar cartas para obtener nuevas recompensas o descartar la recompensa si no quiere deshacerse de ninguna de ellas. 
+- Los turnos:
+  - Los turnos acaban cuando los cazadores tocan a los fugitivos. Recuerda que los fugitivos no se pueden mover una vez empiezan a buscar en su estación. En ese momento empieza la cuenta atrás para que la siguiente persona se esconda.
+- El ganador:
+  - Cuando se acaben las rondas o el tiempo decretado, el ganador será el jugador que haya conseguido permanecer más tiempo escondido. Las cartas de tiempo que los fugitivos tengan en la mano al final de la ronda se suman al tiempo obtenido. Las deducciones de tiempo que penalicen a los fugitivos se restan del tiempo final.

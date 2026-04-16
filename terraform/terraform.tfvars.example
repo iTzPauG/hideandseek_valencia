@@ -1,0 +1,5 @@
+# Copy this file to terraform.tfvars and fill in the values
+# DO NOT commit terraform.tfvars to git
+
+db_password = "change_me_strong_password"
+jwt_secret  = "change_me_random_32_char_string"

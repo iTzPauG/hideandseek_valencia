@@ -1,0 +1,35 @@
+Requisitos técnicos:
+- La aplicación debe correr directamente con un terraform apply. debe incluir null resource para los docker también.
+- La aplicación debe correr en GCP:
+  - El frontend debe estar en un Cloud Run con un link accesible. React autoresponsive diseñado para movil. Todos los calculos necesarios se realizan en el frontend
+  - EL backend debe estar en un cloud run también. FastAPI. Los requisitos de seguridad son secundarios pero utilicemos una api.
+  - Los usuarios y sus contraseñas, así como el registro de sus antiguas partidas se debe guardar en Cloud SQL.
+  - Todo el resto de la información necesaria se debe guardar en firestore, incluidas las cartas, preguntas, retos, la localización de los jugadores, las localizaciones del metro, las localizaciones de sitios relevantes etc. 
+- La aplicación debe obligar de primeras a los jugadores a registrarse o hacer login.
+- Los jugadores pueden unirse a una partida, crear una partida o consultar su registro. 
+  - Al crear una partida aparecerá un codigo, introduciendo ese codigo en otro movil pueden unirse a esa partida. 
+  - Al unirse dos jugadores, al jugador que creo la partida se le habilitará el botón de empezar partida.
+  - Al empezar partida se sortea automáticamente el orden de quien se esconde primero.
+
+- La aplicación debe mostrar el mapa de valencia con todas las paradas de metro y tranvia y las líneas de metro y tranvia que lo componen, desde la 1 a la 10. Debe ser ilustrativo que paradas conectan con otras y respetar los colores oficiales de metrovalencia:
+  - Linea 1 amarilla.
+  - Linea 2 rosa.
+  - Linea 3 roja.
+  - Linea 4 azul oscuro.
+  - Linea 5 verde neutro.
+  - Linea 6 violeta clarito.
+  - Linea 7 naranja.
+  - Línea 8 azul clarito.
+  - Linea 9 marron clarito.
+  - Línea 10 verde clarito.
+
+- La aplicación debe tener tres botones en el menú que se encontrará abajo:
+  - Si eres cazador: Mapa y preguntas y ranking:
+    - Mapa: Mostrará su propia ubicación, las líneas del metro/tram y el trozo de mapa descartado con las preguntas. También se podrá clickar en una estación para seleccionarla solo si estas cerca de ella. Se mostrarán las estaciones que han sido seleccionadas pero falladas, o en caso de haber acertado, se mostrara el círculo donde puede esconderse el fugitivo.
+    - Preguntas: Se mostrarán las 3 categorías y luego todas las preguntas posibles en un desplegable. Se mostrará el título de la pregunta en negrita y una pequeña descirpción en letra normal. Preguntas como radar o matching se responderán automáticamente pero con previa autorización del fugitivo, una vez preguntadas te mostrará Sí o No y te llevara al mapa donde podrás ver la parte del mapa que se ha descartado. La aplicación calculará la respuesta a esta pregunta porque dispondrá de la ubicación del fugitivo, pero nunca se la debe mostrar al cazador. Las preguntas que hayan sido utilizadas se oscurecerán y se pondrán al fondo de la lista automáticamente ya que no se podrán volver a utilizar.
+  - Si eres fugitivo: Mapa y Cartas y Ranking:
+    - Mapa: Podrán ver en tiempo real en todo momento la ubicación de los cazadores y la suya misma. También las lineas y el trozo de mapa que los cazadores han descartado. Durante el tiempo de escondite podrá clickar en una estación para seleccionarla. Si no ha seleccionado ninguna estación cuando se acabe el tiempo seleccionará la más cercana.
+    - Cartas: mostrará las cartas en mano y habrá un boton arriba a la derecha de recompensas. Aparecerán automáticamente después de haber respondido las preguntas, para las matching y radar no hará falta que el usuario haga nada, para las de foto, las fotos se mandarán por whatsapp, así que tan solo deberá confirmar que ha enviado la foto para poder recibir la recompensa. Cada vez que abra una recompensa aparecerá un menú con las cartas que ha robado y podrá elegir las que corresponda según la categoría de pregunta que haya hecho el cazador. Las cartas podrán seleccionarse para usarse en el menú de cartas. También habrá un botón para confirmar las preguntas o vetarlas/randomizarlas si es que dispone de la carta para hacerlo. Los retos se podrán activar y decidir quien los hace. Una vez decidido, la prueba gráfica de que se han pasado los retos se enviará por whatsapp, así que simplemente el cazador deberá de decir si ha sido éxito o fracaso. Una vez puesto el resultado la recompensa o penalización se otorgará automáticamente.
+- El ranking mostrará los mejores tiempos de los jugadores por orden
+- En la aplicación habrá en todo momento un sitio donde se pueda ver el cronometro, tanto cuenta atrás para encontrar escondite como cronometro para el tiempo que ha logrado estar escondido.
+- La aplicación no debe suspender la partida ni la información del usuario incluso aunque suspendan el movil, al igual que debe seguir compartiendo la ubicación aunque este suspendido el movil (dime si esto es posible y que soluciones podemos encontrar)
