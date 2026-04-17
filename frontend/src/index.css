@@ -142,14 +142,24 @@ hr { border-color: #333; }
 
 /* PendingQuestionPopup */
 .pq-overlay { position: fixed; bottom: 56px; left: 0; right: 0; z-index: 1500; pointer-events: none; }
-.pq-box { background: #1a1a2e; border-top: 2px solid #e63946; border-radius: 16px 16px 0 0; padding: 1rem; pointer-events: all; max-height: 55vh; overflow-y: auto; }
+.pq-box { background: #1a1a2e; border-top: 2px solid #e63946; border-radius: 16px 16px 0 0; padding: 0.75rem 1rem; pointer-events: all; max-height: 45vh; overflow-y: auto; }
 .pq-header { margin-bottom: 0.75rem; }
 .pq-cat { font-size: 0.75rem; color: #aaa; display: block; margin-bottom: 0.25rem; }
 .pq-desc { color: #aaa; font-size: 0.85rem; margin: 0.25rem 0 0; }
-.pq-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-.pq-btn { padding: 0.6rem; border: 1px solid #444; background: #2a2a4e; color: #fff; border-radius: 8px; font-size: 0.85rem; cursor: pointer; }
-.pq-btn.primary { background: #e63946; border-color: #e63946; grid-column: 1 / -1; }
+.pq-btns { display: flex; flex-direction: column; gap: 0.5rem; }
+.pq-btn { padding: 0.6rem; border: 1px solid #444; background: #2a2a4e; color: #fff; border-radius: 8px; font-size: 0.85rem; cursor: pointer; text-align: center; }
+.pq-btn.primary { background: #e63946; border-color: #e63946; }
 .pq-btn.disabled { opacity: 0.4; cursor: not-allowed; }
 .reward-card { background: #2a2a4e; border: 2px solid #444; border-radius: 8px; padding: 0.75rem; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; cursor: pointer; }
 .reward-card.selected { border-color: #e63946; }
 .reward-check { width: 20px; height: 20px; border: 2px solid #aaa; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; color: #e63946; margin-top: 0.25rem; }
+
+/* Radar result popup for hunter */
+.radar-result-popup { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+.radar-result-box { background: #1a1a2e; border-radius: 16px; padding: 2rem 1.5rem; text-align: center; width: 280px; }
+.radar-result-title { font-size: 1.8rem; font-weight: bold; margin-bottom: 0.5rem; }
+.radar-result-sub { color: #aaa; margin-bottom: 1.5rem; }
+.radar-result-box.hit .radar-result-title { color: #e63946; }
+.radar-result-box.miss .radar-result-title { color: #aaa; }
+
+.explore-back-btn { width: 100%; padding: 1rem; background: #e63946; color: #fff; border: none; font-size: 1.1rem; font-weight: bold; cursor: pointer; padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }

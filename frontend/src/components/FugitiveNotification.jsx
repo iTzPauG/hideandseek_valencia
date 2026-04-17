@@ -13,7 +13,7 @@ function cardLabel(id) {
   return REWARD_LABELS[prefix] || id;
 }
 
-export default function FugitiveNotification({ game, gameId }) {
+export default function FugitiveNotification({ game, gameId, onShowRadarPreview }) {
   const user = useStore((s) => s.user);
   const [phase, setPhase] = useState("question"); // "question" | "reward"
   const [drawnCards, setDrawnCards] = useState([]);
@@ -76,7 +76,7 @@ export default function FugitiveNotification({ game, gameId }) {
     try {
       await api.post("/questions/claim-reward", { game_id: gameId, chosen_card_ids: chosen });
     } catch (err) {
-      alert(err.response?.data?.detail || "Error");
+      alert(err.response?.data?.detail || JSON.stringify(err.response?.data) || "Error al guardar cartas");
     } finally {
       setLoading(false);
     }
@@ -101,6 +101,12 @@ export default function FugitiveNotification({ game, gameId }) {
             <p className="notif-desc">{pending.description}</p>
 
             <div className="notif-actions">
+              {pending.category === "radar" && (
+                <>
+                  <button className="notif-btn yes" onClick={() => respond("answer")} disabled={loading}>✅ Responder</button>
+                  <button className="notif-btn" onClick={() => onShowRadarPreview && onShowRadarPreview(pending)} disabled={loading}>👁 Mostrar efecto</button>
+                </>
+              )}
               {pending.category === "match" && (
                 <>
                   <button className="notif-btn yes" onClick={() => respond("answer", true)} disabled={loading}>✅ Sí</button>

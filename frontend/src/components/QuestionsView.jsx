@@ -3,11 +3,17 @@ import api from "../api";
 
 const CATEGORY_LABELS = { radar: "📡 Radar", match: "🔗 Match", photo: "📷 Foto" };
 
-export default function QuestionsView({ game, gameId }) {
+export default function QuestionsView({ game, gameId, onShowMap }) {
   const [questions, setQuestions] = useState([]);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const used = game.used_questions || [];
+  const radarResult = game.radar_pending_result;
+
+  const dismissRadar = async () => {
+    await api.post("/questions/dismiss-radar-result", { game_id: gameId });
+    onShowMap && onShowMap();
+  };
   const pending = game.pending_question;
 
   useEffect(() => {
@@ -54,6 +60,21 @@ export default function QuestionsView({ game, gameId }) {
 
   return (
     <div className="questions-view">
+      {radarResult && (
+        <div className="radar-result-popup">
+          <div className={`radar-result-box ${radarResult.answer ? "hit" : "miss"}`}>
+            <div className="radar-result-title">
+              {radarResult.answer ? "🎯 IT'S A HIT!" : "💨 IT'S A MISS"}
+            </div>
+            <div className="radar-result-sub">
+              Radio: {radarResult.radius_m >= 1000 ? `${radarResult.radius_m/1000}km` : `${radarResult.radius_m}m`}
+            </div>
+            <button className="pq-btn primary" onClick={dismissRadar}>
+              🗺️ Mostrar en mapa
+            </button>
+          </div>
+        </div>
+      )}
       {result && (
         <div className="result-banner">
           <strong>{result.question.title}</strong>: {renderAnswer()}

@@ -9,35 +9,31 @@ import RankingView from "../components/RankingView";
 import Timer from "../components/Timer";
 import CaughtButton from "../components/CaughtButton";
 import FugitiveNotification from "../components/FugitiveNotification";
-import PendingQuestionPopup from "../components/PendingQuestionPopup";
 
 export default function GamePage() {
   const { gameId } = useParams();
   const navigate = useNavigate();
   const { setGame, myRole, game, user } = useStore();
   const [tab, setTab] = useState("map");
-  const [locationGranted, setLocationGranted] = useState(false);
   const [ending, setEnding] = useState(false);
   const [radarPreview, setRadarPreview] = useState(null);
+  const [exploringMap, setExploringMap] = useState(false);
 
-  // Force to cards tab if hand exceeds 5
   useEffect(() => {
     if (!game || myRole !== "fugitive") return;
     const hand = game.players?.[String(user?.id)]?.hand || [];
     if (hand.length > 5) setTab("cards");
   }, [game?.players]);
 
-  // Request geolocation permission immediately on mount
   useEffect(() => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      () => setLocationGranted(true),
+      () => {},
       () => alert("⚠️ Activa la ubicación para jugar correctamente"),
       { enableHighAccuracy: true }
     );
   }, []);
 
-  // Poll game state every 4s
   useEffect(() => {
     const load = async () => {
       try {
@@ -51,20 +47,13 @@ export default function GamePage() {
     return () => clearInterval(interval);
   }, [gameId]);
 
-  // Send location every 10s
   useEffect(() => {
     if (!navigator.geolocation) return;
-    const send = (pos) => {
-      api.post("/players/location", {
-        game_id: gameId,
-        lat: pos.coords.latitude,
-        lon: pos.coords.longitude,
-      }).catch(() => {});
-    };
-    const watchId = navigator.geolocation.watchPosition(send, () => {}, {
-      enableHighAccuracy: true,
-      maximumAge: 10000,
-    });
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => api.post("/players/location", { game_id: gameId, lat: pos.coords.latitude, lon: pos.coords.longitude }).catch(() => {}),
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 10000 }
+    );
     return () => navigator.geolocation.clearWatch(watchId);
   }, [gameId]);
 
@@ -98,50 +87,42 @@ export default function GamePage() {
     <div className="game-page">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 8px", background: "#1a1a2e" }}>
         <Timer game={game} role={myRole} />
-      {myRole === "hunter" && <CaughtButton game={game} gameId={gameId} />}
-      {myRole === "fugitive" && <FugitiveNotification game={game} gameId={gameId} />}
-        <button
-          onClick={endGame}
-          disabled={ending}
-          style={{
-            background: "#e74c3c",
-            color: "white",
-            border: "none",
-            borderRadius: 8,
-            padding: "6px 14px",
-            fontSize: 13,
-            fontWeight: "bold",
-            cursor: "pointer",
-            opacity: ending ? 0.6 : 1,
-          }}
-        >
+        {myRole === "hunter" && <CaughtButton game={game} gameId={gameId} />}
+        {myRole === "fugitive" && !exploringMap && (
+          <FugitiveNotification game={game} gameId={gameId}
+            onShowRadarPreview={(pending) => {
+              setRadarPreview(pending);
+              setExploringMap(true);
+              setTab("map");
+            }} />
+        )}
+        <button onClick={endGame} disabled={ending}
+          style={{ background: "#e74c3c", color: "white", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 13, fontWeight: "bold", cursor: "pointer", opacity: ending ? 0.6 : 1 }}>
           🏁 Acabar
         </button>
       </div>
 
       <div className="tab-content">
         {tab === "map" && <MapView game={game} myRole={myRole} gameId={gameId} radarPreview={radarPreview} />}
-        {tab === "questions" && myRole === "hunter" && <QuestionsView game={game} gameId={gameId} />}
-        {tab === "cards" && myRole === "fugitive" && <CardsView game={game} gameId={gameId} />}
-        {tab === "ranking" && <RankingView />}
+        {!exploringMap && tab === "questions" && myRole === "hunter" && <QuestionsView game={game} gameId={gameId} onShowMap={() => setTab("map")} />}
+        {!exploringMap && tab === "cards" && myRole === "fugitive" && <CardsView game={game} gameId={gameId} />}
+        {!exploringMap && tab === "ranking" && <RankingView />}
       </div>
 
-      {myRole === "fugitive" && (
-        <PendingQuestionPopup
-          game={game} gameId={gameId} myRole={myRole}
-          onShowRadarPreview={(pending) => {
-            setRadarPreview(pending);
-            setTab("map");
-          }} />
+      {exploringMap ? (
+        <button className="explore-back-btn"
+          onClick={() => { setExploringMap(false); setRadarPreview(null); }}>
+          ← Volver
+        </button>
+      ) : (
+        <nav className="bottom-nav">
+          {tabs.map((t) => (
+            <button key={t.id} className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)}>
+              {t.label}
+            </button>
+          ))}
+        </nav>
       )}
-
-      <nav className="bottom-nav">
-        {tabs.map((t) => (
-          <button key={t.id} className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)}>
-            {t.label}
-          </button>
-        ))}
-      </nav>
     </div>
   );
 }

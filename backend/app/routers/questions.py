@@ -175,6 +175,7 @@ async def respond_question(body: RespondQuestion, user: User = Depends(get_curre
             "pending_question": {**pending, "status": "answered", "answer": answer},
             "used_questions": game.get("used_questions", []) + [pending["question_id"]],
             "radar_overlays": overlays,
+            "radar_pending_result": {"answer": answer, "radius_m": pending["radar_radius_m"]},
         })
         return {"action": "answered", "answer": answer, "reward": pending.get("reward")}
 
@@ -197,7 +198,7 @@ async def claim_reward(body: ClaimReward, user: User = Depends(get_current_user)
     db = get_firestore()
     game_doc = await db.collection("games").document(body.game_id).get()
     game = game_doc.to_dict()
-    pending = game.get("pending_question", {})
+    pending = game.get("pending_question") or {}
     reward = pending.get("reward", {"draw": 2, "keep": 1})
 
     if len(body.chosen_card_ids) > reward["keep"]:
@@ -212,6 +213,16 @@ async def claim_reward(body: ClaimReward, user: User = Depends(get_current_user)
         "pending_question": None,
     })
     return {"hand": new_hand}
+
+
+class DismissRadar(BaseModel):
+    game_id: str
+
+@router.post("/dismiss-radar-result")
+async def dismiss_radar_result(body: DismissRadar, user: User = Depends(get_current_user)):
+    db = get_firestore()
+    await db.collection("games").document(body.game_id).update({"radar_pending_result": None})
+    return {"ok": True}
 
 
 class GuessStation(BaseModel):

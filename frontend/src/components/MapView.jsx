@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
-import { MapContainer, TileLayer, CircleMarker, Polyline, Circle, Popup, useMap } from "react-leaflet";
+import React, { useEffect, useState, useCallback } from "react";
+import { MapContainer, TileLayer, CircleMarker, Polyline, Circle, Polygon, Rectangle, SVGOverlay, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import api from "../api";
 import { useStore } from "../store";
@@ -233,18 +234,34 @@ export default function MapView({ game, myRole, gameId, radarPreview }) {
         <LocateButton />
 
         {/* Radar overlays — accumulated, visible to all */}
-        {(game.radar_overlays || []).map((o, i) => (
-          <Circle key={i} center={[o.hunter_lat, o.hunter_lon]} radius={o.radius_m}
-            color={o.inside ? "transparent" : "#e74c3c"}
-            fillColor={o.inside ? "transparent" : "#e74c3c"}
-            fillOpacity={o.inside ? 0 : 0.18} weight={o.inside ? 0 : 2} />
-        ))}
-        {/* Preview of pending radar before fugitive accepts */}
+        {(game.radar_overlays || []).map((o, i) => {
+          if (!o.inside) return (
+            <Circle key={i} center={[o.hunter_lat, o.hunter_lon]} radius={o.radius_m}
+              pathOptions={{ color:'#e74c3c', weight:3, fillColor:'#e74c3c', fillOpacity:0.25 }} />
+          );
+          // Build donut polygon: outer box + inner circle hole
+          const outer = [
+            [o.hunter_lat+2, o.hunter_lon-3],
+            [o.hunter_lat+2, o.hunter_lon+3],
+            [o.hunter_lat-2, o.hunter_lon+3],
+            [o.hunter_lat-2, o.hunter_lon-3],
+          ];
+          const steps = 64;
+          const latR = o.radius_m / 111000;
+          const lonR = o.radius_m / (111000 * Math.cos(o.hunter_lat * Math.PI / 180));
+          const hole = Array.from({length: steps}, (_, k) => {
+            const a = (2 * Math.PI * k) / steps;
+            return [o.hunter_lat + latR * Math.sin(a), o.hunter_lon + lonR * Math.cos(a)];
+          });
+          return (
+            <Polygon key={i} positions={[outer, hole]}
+              pathOptions={{ color:'#e74c3c', weight:2, fillColor:'#e74c3c', fillOpacity:0.25, fillRule:'evenodd' }} />
+          );
+        })}
         {radarPreview && (
           <Circle center={[radarPreview.hunter_lat, radarPreview.hunter_lon]}
             radius={radarPreview.radar_radius_m}
-            color="#e74c3c" fillColor="#e74c3c" fillOpacity={0.12}
-            weight={2} dashArray="6" />
+            pathOptions={{ color:'#e74c3c', weight:2, fill:false, dashArray:'6' }} />
         )}
       </MapContainer>
     </>
