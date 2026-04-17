@@ -9,6 +9,7 @@ import RankingView from "../components/RankingView";
 import Timer from "../components/Timer";
 import CaughtButton from "../components/CaughtButton";
 import FugitiveNotification from "../components/FugitiveNotification";
+import PendingQuestionPopup from "../components/PendingQuestionPopup";
 
 export default function GamePage() {
   const { gameId } = useParams();
@@ -17,6 +18,14 @@ export default function GamePage() {
   const [tab, setTab] = useState("map");
   const [locationGranted, setLocationGranted] = useState(false);
   const [ending, setEnding] = useState(false);
+  const [radarPreview, setRadarPreview] = useState(null);
+
+  // Force to cards tab if hand exceeds 5
+  useEffect(() => {
+    if (!game || myRole !== "fugitive") return;
+    const hand = game.players?.[String(user?.id)]?.hand || [];
+    if (hand.length > 5) setTab("cards");
+  }, [game?.players]);
 
   // Request geolocation permission immediately on mount
   useEffect(() => {
@@ -111,11 +120,20 @@ export default function GamePage() {
       </div>
 
       <div className="tab-content">
-        {tab === "map" && <MapView game={game} myRole={myRole} gameId={gameId} />}
+        {tab === "map" && <MapView game={game} myRole={myRole} gameId={gameId} radarPreview={radarPreview} />}
         {tab === "questions" && myRole === "hunter" && <QuestionsView game={game} gameId={gameId} />}
         {tab === "cards" && myRole === "fugitive" && <CardsView game={game} gameId={gameId} />}
         {tab === "ranking" && <RankingView />}
       </div>
+
+      {myRole === "fugitive" && (
+        <PendingQuestionPopup
+          game={game} gameId={gameId} myRole={myRole}
+          onShowRadarPreview={(pending) => {
+            setRadarPreview(pending);
+            setTab("map");
+          }} />
+      )}
 
       <nav className="bottom-nav">
         {tabs.map((t) => (

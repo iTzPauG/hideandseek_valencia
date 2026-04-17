@@ -18,6 +18,7 @@ export default function LobbyPage() {
   const [activeGames, setActiveGames] = useState([]);
   const [error, setError] = useState("");
   const user = useStore((s) => s.user);
+  const logout = useStore((s) => s.logout);
   const navigate = useNavigate();
   const pollRef = useRef(null);
 
@@ -72,7 +73,10 @@ export default function LobbyPage() {
 
   return (
     <div className="lobby-page">
-      <h2>Hola, {user?.username} 👋</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h2>Hola, {user?.username} 👋</h2>
+        <button onClick={() => { logout(); navigate("/"); }} style={{ padding: "8px 16px" }}>Cerrar sesión</button>
+      </div>
       {error && <p className="error">{error}</p>}
 
       {!gameCode && !joined && (

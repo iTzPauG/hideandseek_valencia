@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+import random as _random
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from app.firestore_client import get_firestore
 from app.routers.auth import get_current_user
@@ -12,6 +13,16 @@ async def list_cards():
     db = get_firestore()
     docs = await db.collection("cards").get()
     return [{"id": d.id, **d.to_dict()} for d in docs]
+
+
+@router.get("/draw")
+async def draw_cards(count: int = Query(default=2, ge=1, le=5)):
+    """Draw random cards from the deck."""
+    db = get_firestore()
+    docs = await db.collection("cards").get()
+    all_cards = [{"id": d.id, **d.to_dict()} for d in docs]
+    drawn = _random.sample(all_cards, min(count, len(all_cards)))
+    return drawn
 
 
 class PlayCard(BaseModel):

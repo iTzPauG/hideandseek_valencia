@@ -6,64 +6,94 @@ import { useStore } from "../store";
 
 const LINE_COLORS = {
   "1": "#FFD700", "2": "#CC44CC", "3": "#E74C3C", "4": "#2980B9",
+  "4b": "#2980B9", "4c": "#2980B9", "4d": "#2980B9",
   "5": "#27AE60", "6": "#8E44AD", "7": "#E67E22", "8": "#3498DB",
   "9": "#795548", "10": "#2ECC71",
 };
 
-function offsetSegment(p1, p2, idx, offsetDeg) {
-  if (idx === 0) return [p1, p2];
-  const dlat = p2[0] - p1[0];
-  const dlon = p2[1] - p1[1];
-  const len = Math.sqrt(dlat * dlat + dlon * dlon) || 1;
-  const nx = -dlon / len;
-  const ny = dlat / len;
-  const d = offsetDeg * idx;
-  return [
-    [p1[0] + nx * d, p1[1] + ny * d],
-    [p2[0] + nx * d, p2[1] + ny * d],
-  ];
-}
+// Fixed global order — determines which side each line sits on shared segments
+const LINE_ORDER = ["1","2","3","4","5","6","7","8","9","10"];
+
+// Segments where the canonical N→S perpendicular points the wrong way — pre-computed
+const FLIP_SEGMENTS = new Set([
+  "paiporta|picanya","picanya|torrent",
+  "angel_guimera|xativa",
+  "av_cid|nou_octubre","mislata|nou_octubre","mislata|mislata_almassil","faitanar|mislata_almassil",
+  "faitanar|quart_poblet","quart_poblet|salt_aigua","manises|salt_aigua","manises|rosas",
+  "benimaclet|trinitat","benimaclet|vicent_zaragoza","univ_politecnica|vicent_zaragoza",
+  "la_carrasca|univ_politecnica","la_carrasca|tarongers","betero|tarongers",
+  "betero|la_cadena","cabanyal|la_cadena","la_cadena|platja_malva_rosa","platja_les_arenes|platja_malva_rosa",
+  "alameda|aragon","amistat|aragon","amistat|ayora","ayora|maritim",
+  "francesc_cubells|grau_marina","francesc_cubells|maritim",
+]);
 
 function Lines({ lines, stationMap }) {
-  const map = useMap();
-  const [zoom, setZoom] = useState(map.getZoom());
-  useEffect(() => {
-    const h = () => setZoom(map.getZoom());
-    map.on("zoomend", h);
-    return () => map.off("zoomend", h);
-  }, [map]);
-
-  // offset in degrees: ~5px at current zoom
-  const metersPerPx = 156543.03392 * Math.cos(39.47 * Math.PI / 180) / Math.pow(2, zoom);
-  const offsetDeg = (metersPerPx * 5) / 111320;
-
   const segLines = {};
   for (const line of lines) {
-    const ids = line.station_ids || [];
-    for (let i = 0; i < ids.length - 1; i++) {
-      const key = [ids[i], ids[i + 1]].sort().join("|");
+    const nid = line.id.replace(/[a-z]+$/, '');
+    for (let i = 0; i < (line.station_ids || []).length - 1; i++) {
+      const key = [line.station_ids[i], line.station_ids[i+1]].sort().join("|");
       if (!segLines[key]) segLines[key] = [];
-      const lid = line.id;
-      if (!segLines[key].includes(lid)) segLines[key].push(lid);
+      if (!segLines[key].includes(nid)) segLines[key].push(nid);
     }
   }
+  for (const key in segLines) {
+    segLines[key].sort((a,b) => LINE_ORDER.indexOf(a) - LINE_ORDER.indexOf(b));
+  }
 
+  const offsetDeg = 0.00018;
   const elements = [];
+
   for (const line of lines) {
     const ids = line.station_ids || [];
+    const nid = line.id.replace(/[a-z]+$/, '');
     const color = LINE_COLORS[line.id] || "#888";
-    for (let i = 0; i < ids.length - 1; i++) {
-      const s1 = stationMap[ids[i]];
-      const s2 = stationMap[ids[i + 1]];
-      if (!s1 || !s2) continue;
-      const key = [ids[i], ids[i + 1]].sort().join("|");
-      const shared = segLines[key];
-      const myIdx = shared.indexOf(line.id);
-      const centred = myIdx - (shared.length - 1) / 2;
-      const [op1, op2] = offsetSegment([s1.lat, s1.lon], [s2.lat, s2.lon], centred, offsetDeg);
+
+    // Compute offset point for each station using miter intersection of adjacent segments
+    const pts = [];
+    for (let i = 0; i < ids.length; i++) {
+      const s = stationMap[ids[i]];
+      if (!s) { pts.push(null); continue; }
+
+      const hasPrev = i > 0 && stationMap[ids[i-1]];
+      const hasNext = i < ids.length-1 && stationMap[ids[i+1]];
+
+      const getOff = (iA, iB) => {
+        const key = [ids[iA], ids[iB]].sort().join("|");
+        const shared = segLines[key] || [nid];
+        const centred = shared.indexOf(nid) - (shared.length-1)/2;
+        const [ka, kb] = key.split("|");
+        const sa = stationMap[ka], sb = stationMap[kb];
+        const [sf, st] = sa.lat >= sb.lat ? [sa, sb] : [sb, sa];
+        const cosLat = Math.cos(sf.lat * Math.PI / 180);
+        const dlat = st.lat-sf.lat, dlon = (st.lon-sf.lon)*cosLat;
+        const len = Math.sqrt(dlat*dlat+dlon*dlon)||1;
+        const flip = FLIP_SEGMENTS.has(key) ? -1 : 1;
+        return [(-dlon/len)*centred*offsetDeg*flip, (dlat/len)*centred*offsetDeg/cosLat*flip];
+      };
+
+      if (hasPrev && hasNext) {
+        const [nx1, ny1] = getOff(i-1, i);
+        const [nx2, ny2] = getOff(i, i+1);
+        // Miter: average the two offset vectors (works well for small angles)
+        pts.push([s.lat + (nx1+nx2)/2, s.lon + (ny1+ny2)/2]);
+      } else if (hasPrev) {
+        const [nx, ny] = getOff(i-1, i);
+        pts.push([s.lat+nx, s.lon+ny]);
+      } else if (hasNext) {
+        const [nx, ny] = getOff(i, i+1);
+        pts.push([s.lat+nx, s.lon+ny]);
+      } else {
+        pts.push([s.lat, s.lon]);
+      }
+    }
+
+    const positions = pts.filter(Boolean);
+    if (positions.length >= 2) {
       elements.push(
-        <Polyline key={`${line.id}-${i}`} positions={[op1, op2]}
-          color={color} weight={4} opacity={0.9} />
+        <Polyline key={line.id} positions={positions}
+          color={color} weight={4} opacity={0.9}
+          pathOptions={{ lineCap: 'round', lineJoin: 'round' }} />
       );
     }
   }
@@ -113,15 +143,16 @@ function OwnLocationMarker() {
   );
 }
 
-export default function MapView({ game, myRole, gameId }) {
+export default function MapView({ game, myRole, gameId, radarPreview }) {
   const [stations, setStations] = useState([]);
   const [lines, setLines] = useState([]);
   const [pendingStation, setPendingStation] = useState(null);
   const user = useStore((s) => s.user);
 
   useEffect(() => {
-    api.get("/map/stations").then(({ data }) => setStations(data));
-    api.get("/map/lines").then(({ data }) => setLines(data));
+    const t = Date.now();
+    api.get(`/map/stations?_t=${t}`).then(({ data }) => setStations(data));
+    api.get(`/map/lines?_t=${t}`).then(({ data }) => setLines(data));
   }, []);
 
   const confirmHide = async () => {
@@ -175,7 +206,7 @@ export default function MapView({ game, myRole, gameId }) {
               <Popup>
                 <strong>{st.name}</strong><br />
                 {(st.lines || []).map(id => (
-                  <span key={id} style={{ color: LINE_COLORS[id], fontWeight: "bold", marginRight: 4 }}>L{id}</span>
+                  <span key={id} style={{ color: LINE_COLORS[id] || LINE_COLORS[id.replace(/[a-z]+$/,"")], fontWeight: "bold", marginRight: 4 }}>L{id.replace(/[a-z]+$/,"")}</span>
                 ))}
               </Popup>
             </CircleMarker>
@@ -200,6 +231,21 @@ export default function MapView({ game, myRole, gameId }) {
 
         <OwnLocationMarker />
         <LocateButton />
+
+        {/* Radar overlays — accumulated, visible to all */}
+        {(game.radar_overlays || []).map((o, i) => (
+          <Circle key={i} center={[o.hunter_lat, o.hunter_lon]} radius={o.radius_m}
+            color={o.inside ? "transparent" : "#e74c3c"}
+            fillColor={o.inside ? "transparent" : "#e74c3c"}
+            fillOpacity={o.inside ? 0 : 0.18} weight={o.inside ? 0 : 2} />
+        ))}
+        {/* Preview of pending radar before fugitive accepts */}
+        {radarPreview && (
+          <Circle center={[radarPreview.hunter_lat, radarPreview.hunter_lon]}
+            radius={radarPreview.radar_radius_m}
+            color="#e74c3c" fillColor="#e74c3c" fillOpacity={0.12}
+            weight={2} dashArray="6" />
+        )}
       </MapContainer>
     </>
   );

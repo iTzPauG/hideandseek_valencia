@@ -20,14 +20,14 @@ LINES_DEF = [
         "beniferri","campanar","turia","angel_guimera","placa_espanya","jesus",
         "patraix","safranar","sant_isidre","valencia_sud","paiporta","picanya",
         "torrent","collegi_vedat","realon","sant_ramon","picassent","omet","espioca",
-        "font_almaguer","alginet","ausias_march_carlet","carlet","l_alcudia",
-        "benimodo","montortal","masalaves","alberic","castello",
+        "font_almaguer","alginet","ausias_march_carlet","carlet","benimodo",
+        "l_alcudia","montortal","masalaves","alberic","castello",
     ]},
     # L2: no Ll.Llarga (that's L4 branch)
     {"id": "2", "name": "Línia 2", "color": "#CC44CC", "stations": [
-        "lliria","fondo_benaguasil","benaguasil","pobla_vallbona","gallipont_torre_virrey",
-        "eliana","montesol","el_clot","entrepins","la_vallesa","la_canyada","fuente_jarro",
-        "font_barranc","santa_rita","paterna","campament","carolines_fira",
+        "lliria","benaguasil","fondo_benaguasil","pobla_vallbona","gallipont_torre_virrey",
+        "eliana","montesol","el_clot","entrepins","la_vallesa","la_canyada","font_barranc",
+        "fuente_jarro","santa_rita","paterna","campament","carolines_fira",
         "benimamet","cantereria","empalme","beniferri","campanar","turia","angel_guimera",
         "placa_espanya","jesus","patraix","safranar","sant_isidre",
         "valencia_sud","paiporta","picanya","torrent","torrent_avinguda",
@@ -47,41 +47,48 @@ LINES_DEF = [
         "benimaclet","vicent_zaragoza","univ_politecnica","la_carrasca",
         "tarongers","betero","la_cadena",
     ]},
-    # L4 branch: Ll.Llarga → À Punt (joins main trunk at À Punt)
+    # L4b: Ll.Llarga → À Punt
     {"id": "4b", "name": "Línia 4 (ramal Ll.Llarga)", "color": "#2980B9", "stations": [
         "ll_llarga","a_punt",
     ]},
-    # L4 coastal branch: La Cadena → Platja Malva-rosa → Platja les Arenes → Dr.Lluch → Cabanyal → La Cadena (loop)
-    # Represented as: La Cadena → Malva-rosa → Les Arenes → Dr.Lluch → Cabanyal
+    # L4d: Vicent Andrés Estellés → Fira València (third terminal)
+    {"id": "4d", "name": "Línia 4 (ramal Fira)", "color": "#2980B9", "stations": [
+        "vicent_andres","fira_valencia",
+    ]},
+    # L4 coastal loop: La Cadena→Cabanyal→Dr.Lluch→Platja les Arenes→Platja Malva-rosa→La Cadena
     {"id": "4c", "name": "Línia 4 (ramal costero)", "color": "#2980B9", "stations": [
-        "la_cadena","platja_malva_rosa","platja_les_arenes","dr_lluch","cabanyal",
+        "la_cadena","cabanyal","dr_lluch","platja_les_arenes","platja_malva_rosa","la_cadena",
     ]},
     {"id": "5", "name": "Línia 5", "color": "#27AE60", "stations": [
-        "ayora","amistat","aragon","alameda","colon","xativa","angel_guimera",
-        "av_cid","nou_octubre","mislata","mislata_almassil","faitanar","quart_poblet",
-        "salt_aigua","manises","rosas","aeroport",
+        "aeroport","rosas","manises","salt_aigua","quart_poblet","faitanar",
+        "mislata_almassil","mislata","nou_octubre","av_cid","angel_guimera",
+        "xativa","colon","alameda","aragon","amistat","ayora","maritim",
     ]},
-    # L6: ...Marítim → Cabanyal → Dr.Lluch → Canyamelar → Grau-La Marina → Francesc Cubells (and back)
-    # Represented linearly: Tossal del Rei → ... → Marítim → Cabanyal → Dr.Lluch → Canyamelar → Grau → Francesc Cubells
+    # L6 full coastal loop:
+    # Tossal→...→La Cadena→Cabanyal→Dr.Lluch→Canyamelar→Grau→Francesc Cubells→Marítim
+    # →Francesc Cubells→Grau→Canyamelar→Platja les Arenes→Platja Malva-rosa→La Cadena
     {"id": "6", "name": "Línia 6", "color": "#8E44AD", "stations": [
         "tossal_rei","sant_miquel_reis","estadi_ciutat","orriols","alfauir","trinitat",
         "benimaclet","vicent_zaragoza","univ_politecnica","la_carrasca","tarongers",
-        "betero","la_cadena","platja_malva_rosa","platja_les_arenes",
-        "maritim","cabanyal","dr_lluch","canyamelar","grau_marina","francesc_cubells",
+        "betero","la_cadena","cabanyal","dr_lluch",
+        "canyamelar","grau_marina","francesc_cubells","maritim",
+        "francesc_cubells","grau_marina","canyamelar",
+        "platja_les_arenes","platja_malva_rosa","la_cadena",
     ]},
     # L7: exact GTFS — Torrent Avinguda→Marítim, has Bailén not Àngel Guimerà/Xàtiva
     {"id": "7", "name": "Línia 7", "color": "#E67E22", "stations": [
-        "torrent_avinguda","torrent","picanya","paiporta","valencia_sud","sant_isidre",
-        "safranar","patraix","jesus","bailen","colon","alameda","aragon","amistat","ayora","maritim",
+        "maritim","ayora","amistat","aragon","alameda","colon","bailen",
+        "jesus","patraix","safranar","sant_isidre","valencia_sud","paiporta",
+        "picanya","torrent","torrent_avinguda",
     ]},
     # L8: exact GTFS
     {"id": "8", "name": "Línia 8", "color": "#3498DB", "stations": [
-        "neptu","grau_marina","francesc_cubells","maritim",
+        "maritim","francesc_cubells","grau_marina","neptu",
     ]},
     # L9: exact GTFS — includes roses
     {"id": "9", "name": "Línia 9", "color": "#795548", "stations": [
         "riba_roja","masia_traver","valencia_la_vella","la_presa","la_cova",
-        "roses","manises","salt_aigua","quart_poblet","faitanar","mislata_almassil",
+        "rosas","manises","salt_aigua","quart_poblet","faitanar","mislata_almassil",
         "mislata","nou_octubre","av_cid","angel_guimera","xativa","colon","alameda",
         "facultats","benimaclet","machado","alboraya_palmaret","alboraya_peris",
     ]},
@@ -218,7 +225,6 @@ COORDS = {
     # L7 Bailén
     "bailen":             (39.4639778, -0.3794222),
     # L9 roses (correct spelling)
-    "roses":              (39.4926491, -0.4672361),
     "rocafort":           (39.5287094, -0.4075778),
     "rosas":              (39.4926491, -0.4672361),
     "russafa":            (39.4639130, -0.3695310),
@@ -335,7 +341,7 @@ NAMES = {
     "espioca": "Espioca", "l_alcudia": "L'Alcúdia",
     "fondo_benaguasil": "Fondo de Benaguasil", "gallipont_torre_virrey": "Gallipont - Torre del Virrey",
     "font_barranc": "Font del Barranc", "ll_llarga": "Ll. Llarga - Terramelar",
-    "bailen": "Bailén", "roses": "Roses",
+    "bailen": "Bailén",
     "mas_rosari": "Mas del Rosari", "la_coma": "La Coma",
     "tomas_valiente": "Tomás y Valiente", "santa_gemma": "Santa Gemma-Parc Científic UV",
     "a_punt": "À Punt", "campus": "Campus", "sant_joan": "Sant Joan", "la_granja": "La Granja",
@@ -347,7 +353,7 @@ def build_station_lines():
     result = {}
     for line in LINES_DEF:
         # Normalize: 4b→4, 4c→4
-        display_id = line["id"].rstrip("bc")
+        display_id = line["id"].rstrip("abcdefgh")
         for sid in line["stations"]:
             result.setdefault(sid, [])
             if display_id not in result[sid]:
@@ -357,6 +363,18 @@ def build_station_lines():
 
 async def seed():
     db = firestore.AsyncClient(project=PROJECT_ID)
+    
+    # Clear existing data
+    print("Clearing existing stations...")
+    stations_ref = db.collection("metro_stations")
+    async for doc in stations_ref.stream():
+        await doc.reference.delete()
+    
+    print("Clearing existing lines...")
+    lines_ref = db.collection("metro_lines")
+    async for doc in lines_ref.stream():
+        await doc.reference.delete()
+    
     station_lines = build_station_lines()
 
     # Build station docs
@@ -371,7 +389,7 @@ async def seed():
             "name": NAMES.get(sid, sid),
             "lat": lat,
             "lon": lon,
-            "lines": sorted(lines, key=lambda x: int(x)),
+            "lines": sorted(lines, key=lambda x: int(x.rstrip("abcd"))),
         })
 
     print(f"Seeding {len(stations)} stations...")
@@ -380,8 +398,10 @@ async def seed():
 
     print(f"Seeding {len(LINES_DEF)} lines...")
     for line in LINES_DEF:
+        # Normalize: 4b→4, 4c→4, 4d→4 (remove trailing letters)
+        display_id = line["id"].rstrip("abcdefgh")
         await db.collection("metro_lines").document(line["id"]).set({
-            "id": line["id"].rstrip("bc"),  # display id: 4b→4
+            "id": display_id,
             "name": line["name"],
             "color": line["color"],
             "station_ids": line["stations"],

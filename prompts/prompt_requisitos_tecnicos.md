@@ -33,3 +33,28 @@ Requisitos técnicos:
 - El ranking mostrará los mejores tiempos de los jugadores por orden
 - En la aplicación habrá en todo momento un sitio donde se pueda ver el cronometro, tanto cuenta atrás para encontrar escondite como cronometro para el tiempo que ha logrado estar escondido.
 - La aplicación no debe suspender la partida ni la información del usuario incluso aunque suspendan el movil, al igual que debe seguir compartiendo la ubicación aunque este suspendido el movil (dime si esto es posible y que soluciones podemos encontrar)
+
+
+Genial, trabajemos ahora en el apartado de las preguntas. Empezaremos por los radares. Cuando el cazador clicka
+en un radar, le pregunta si esta seguro? tras darle a que sí, al fugitivo le debe aparecer un pop up que no se 
+irá hasta que lo acepte. El pop up aparecerá en la parte de abajo, sin tapar el menu de mapas y cartas y       
+dejando ver de forma razonable el mapa. El pop up tendrá 4 botones, Responder, Vetar, Randomizar y mostrar     
+efecto. Mostrar efecto pondrá el radar en el mapa, si el fugitivo esta en esa distancia de radio, enseñara todo
+en mapa en rojo excepto el circulo de esa distancia de radio desde la posición del cazador. Es decir cuando    
+selecciona 1km de radio, se dibuja un circulo en 1 km de radio desde la posición del cazador, si el fugitivo   
+esta en ese km, se pinta todo de rojo clarito menos ese ciruclo, si el fugitivo no está en el radio, se        
+mostrara ese circulo en rojo. Los radares son acumulables, si un cazador pregunta dos radares, los efectos en  
+el mapa se tienen que acumular y o combinar. no puede borrarse un ciruclo rojo despues de preguntar el segundo 
+radar, así se va viendo el progreso sobre como van descartando el mapa los cazadores. este progreso es visible 
+para cazadores y fugitivos. Los fugitivos como decíamos, antes de aceptar una pregunta pueden consultar con el 
+boton de mostrar efecto como quedaría el mapa tras esa pregunta. Los botones de veto o randomizar aparecen     
+oscurecidos si no se posee la carta de veto o la carta de randomizar. Cuando el jugador selecciona veto, la    
+pregunta estará vetada durante los siguientes 30minutos y al acazador le aparecera como vetada, a los 30       
+minutos este efecto desaparecerá. Cuando se randomiza aparecerá otra vez otro pop up con una pregunta random de
+la misma categoría. Cuando un fugitivo clicka en responder, automaticamente le sale un pop up con la cartas y  
+puede seleccionarlas. Para saber cuantas le tienen que aparecer y cuantas puede seleccionar consulta la        
+prompt_reglas. Para seleccionar deben aparecer casillas vacías debajo de cada carta que cuando se pulsen       
+aparezca un check. tambien existe un botón de aceptar, cuando el jugador clicka aceptar primero se comprueba si
+con las cartas seleccionadas supera el limite, si supera el limite se le redigira de forma forzas a la pantalla
+de cartas y se le obligara a seleccionar las cartas necesarias y descartarlas para que no supere las 5. Si al  
+dar a aceptar no superaba las 5 simplemente se añaden.      

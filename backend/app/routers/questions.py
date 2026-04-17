@@ -55,27 +55,30 @@ async def ask_question(body: AskQuestion, user: User = Depends(get_current_user)
     category = q["category"]
     reward = QUESTION_REWARDS.get(category, {"draw": 2, "keep": 1})
 
-    # For radar: auto-answer using stored locations
+    # For radar: store as pending too — fugitive sees effect before accepting
     if category == "radar":
-        fugitive_station_id = game.get("fugitive_station")
-        # Use hunter's stored location
         hunter_data = game["players"].get(str(user.id), {})
         hunter_lat = hunter_data.get("lat")
         hunter_lon = hunter_data.get("lon")
-
-        if not hunter_lat or not fugitive_station_id:
-            raise HTTPException(status_code=400, detail="Ubicación del cazador o fugitivo no disponible")
-
-        st = await db.collection("metro_stations").document(fugitive_station_id).get()
-        st_data = st.to_dict()
-        dist = haversine(hunter_lat, hunter_lon, st_data["lat"], st_data["lon"])
+        if not hunter_lat:
+            raise HTTPException(status_code=400, detail="Ubicación del cazador no disponible")
         radius = body.radar_radius_m or 1000
-        answer = dist <= radius
-
         await game_doc.reference.update({
-            "used_questions": game.get("used_questions", []) + [body.question_id],
+            "pending_question": {
+                "question_id": body.question_id,
+                "category": "radar",
+                "title": q.get("title", ""),
+                "description": q.get("description", ""),
+                "reward": reward,
+                "status": "pending",
+                "answer": None,
+                "asked_by": str(user.id),
+                "radar_radius_m": radius,
+                "hunter_lat": hunter_lat,
+                "hunter_lon": hunter_lon,
+            }
         })
-        return {"question_id": body.question_id, "category": category, "answer": answer, "reward": reward}
+        return {"question_id": body.question_id, "category": "radar", "answer": None, "reward": reward, "pending": True}
 
     # For match/photo: store as pending, fugitive must respond
     await game_doc.reference.update({
@@ -152,7 +155,30 @@ async def respond_question(body: RespondQuestion, user: User = Depends(get_curre
         await game_doc.reference.update({f"players.{user.id}.hand": new_hand})
         return {"action": "randomized", "new_question": None}
 
-    # action == "answer" — mark as answered, fugitive picks reward cards
+    # action == "answer" — for radar compute answer; for others store fugitive's answer
+    if pending.get("category") == "radar":
+        fugitive_station_id = game.get("fugitive_station")
+        if not fugitive_station_id:
+            raise HTTPException(status_code=400, detail="Fugitivo no tiene estación seleccionada")
+        st = await db.collection("metro_stations").document(fugitive_station_id).get()
+        st_data = st.to_dict()
+        dist = haversine(pending["hunter_lat"], pending["hunter_lon"], st_data["lat"], st_data["lon"])
+        answer = dist <= pending["radar_radius_m"]
+        overlay = {
+            "hunter_lat": pending["hunter_lat"],
+            "hunter_lon": pending["hunter_lon"],
+            "radius_m": pending["radar_radius_m"],
+            "inside": answer,  # True = fugitive is inside circle
+        }
+        overlays = game.get("radar_overlays", []) + [overlay]
+        await game_doc.reference.update({
+            "pending_question": {**pending, "status": "answered", "answer": answer},
+            "used_questions": game.get("used_questions", []) + [pending["question_id"]],
+            "radar_overlays": overlays,
+        })
+        return {"action": "answered", "answer": answer, "reward": pending.get("reward")}
+
+    # match/photo
     await game_doc.reference.update({
         "pending_question": {**pending, "status": "answered", "answer": body.answer},
         "used_questions": game.get("used_questions", []) + [pending["question_id"]],
