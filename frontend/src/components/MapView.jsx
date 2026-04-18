@@ -3,10 +3,18 @@ import { MapContainer, TileLayer, CircleMarker, Polyline, Circle, Polygon, Recta
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import api from "../api";
+import { STADIUM_GROUPS as STADIUM_GROUPS_PREVIEW, TURIA_DISTS as TURIA_STATION_DISTS, STADIUMS_LIST as STADIUMS_DATA } from "../gameData.js";
 import { useStore } from "../store";
 
-const LINE_COLORS = {
-  "1": "#FFD700", "2": "#CC44CC", "3": "#E74C3C", "4": "#2980B9",
+
+
+const TURIA_POINTS = [[39.473901844336275,-0.40580977380914257],[39.475875111148056,-0.39650531107182324],[39.47798076891964,-0.39103464995848797],[39.48107653918475,-0.3834406055526129],[39.48220327431968,-0.38028502205102055],[39.48125863905595,-0.3770557099638838],[39.478629526317334,-0.37210114895394597],[39.47609137083586,-0.3683704824788944],[39.47323441236276,-0.365952184842581],[39.47037733658648,-0.36356337864147575],[39.46605165997359,-0.3612188095918059],[39.463023526335526,-0.35946406923399743],[39.4608149547715,-0.35776831174492707],[39.45916417258277,-0.3543473053361762],[39.45755889162093,-0.35157511048480977],[39.455008581954985,-0.34775596970500783],[39.45412050577638,-0.34495428342197915],[39.45425713361816,-0.3421378514216714]];
+
+
+
+
+
+const LINE_COLORS = {  "1": "#FFD700", "2": "#CC44CC", "3": "#E74C3C", "4": "#2980B9",
   "4b": "#2980B9", "4c": "#2980B9", "4d": "#2980B9",
   "5": "#27AE60", "6": "#8E44AD", "7": "#E67E22", "8": "#3498DB",
   "9": "#795548", "10": "#2ECC71",
@@ -27,6 +35,50 @@ const FLIP_SEGMENTS = new Set([
   "alameda|aragon","amistat|aragon","amistat|ayora","ayora|maritim",
   "francesc_cubells|grau_marina","francesc_cubells|maritim",
 ]);
+
+function StadiumPreviewLayer({ stadiumPreview }) {
+  const map = useMap();
+  const isArray = Array.isArray(stadiumPreview);
+  const stadiums = STADIUMS_DATA;
+  const hunterStadium = !isArray ? stadiumPreview.hunter_stadium : null;
+
+  useEffect(() => {
+    const markers = stadiums.map(s => {
+      const isHunter = hunterStadium === s.name;
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:20px;height:28px;position:relative">
+          <svg viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 0 C4.5 0 0 4.5 0 10 C0 17 10 28 10 28 C10 28 20 17 20 10 C20 4.5 15.5 0 10 0Z"
+              fill="${isHunter ? '#e74c3c' : '#c0392b'}" stroke="#fff" stroke-width="1.5"/>
+            <text x="10" y="13" text-anchor="middle" font-size="9" fill="white" font-family="sans-serif">🏟</text>
+          </svg>
+        </div>`,
+        iconSize: [20, 28],
+        iconAnchor: [10, 28],
+      });
+      const m = L.marker([s.lat, s.lon], { icon }).addTo(map);
+      m.bindPopup(`<strong>🏟 ${s.name}</strong>${isHunter ? ' ← cazador' : ''}`);
+      return m;
+    });
+
+    // Hunter location — simple circle, no teardrop
+    let hunterMarker = null;
+    if (!isArray && stadiumPreview.hunter_lat) {
+      hunterMarker = L.circleMarker([stadiumPreview.hunter_lat, stadiumPreview.hunter_lon], {
+        radius: 9, color: '#fff', weight: 2, fillColor: '#E74C3C', fillOpacity: 0.9
+      }).addTo(map);
+      hunterMarker.bindPopup('📍 Cazador');
+    }
+
+    return () => {
+      markers.forEach(m => map.removeLayer(m));
+      if (hunterMarker) map.removeLayer(hunterMarker);
+    };
+  }, [map, stadiumPreview]);
+
+  return null;
+}
 
 function Lines({ lines, stationMap }) {
   const segLines = {};
@@ -144,7 +196,7 @@ function OwnLocationMarker() {
   );
 }
 
-export default function MapView({ game, myRole, gameId, radarPreview }) {
+export default function MapView({ game, myRole, gameId, radarPreview, stadiumPreview }) {
   const [stations, setStations] = useState([]);
   const [lines, setLines] = useState([]);
   const [pendingStation, setPendingStation] = useState(null);
@@ -168,6 +220,41 @@ export default function MapView({ game, myRole, gameId, radarPreview }) {
 
   const players = game.players || {};
   const discarded = game.discarded_stations || [];
+  // Add stations discarded by stadium overlays
+  const stadiumDiscarded = (game.radar_overlays || [])
+    .filter(o => o.type === "stadium")
+    .flatMap(o => o.discarded_stations || []);
+  const turiaDiscarded = (game.radar_overlays || [])
+    .filter(o => o.type === "turia")
+    .flatMap(o => Object.entries(TURIA_STATION_DISTS)
+      .filter(([, d]) => o.inside ? d > o.hunter_dist : d <= o.hunter_dist)
+      .map(([sid]) => sid));
+
+  // Stadium/Turia preview: calculate discarded stations
+  const previewDiscarded = (() => {
+    if (!stadiumPreview || Array.isArray(stadiumPreview)) return [];
+    if (stadiumPreview.previewType === 'turia' && stadiumPreview.hunter_dist != null) {
+      const d = stadiumPreview.hunter_dist;
+      const fugitiveDist = TURIA_STATION_DISTS[game.fugitive_station] || 99999;
+      const isHit = fugitiveDist <= d;
+      return Object.entries(TURIA_STATION_DISTS)
+        .filter(([, dist]) => isHit ? dist > d : dist <= d)
+        .map(([sid]) => sid);
+    }
+    if (stadiumPreview.hunter_stadium) {
+      const hunterStadium = stadiumPreview.hunter_stadium;
+      const fugitiveStation = game.fugitive_station;
+      const fugitiveStadium = fugitiveStation
+        ? Object.entries(STADIUM_GROUPS_PREVIEW).find(([, stations]) => stations.includes(fugitiveStation))?.[0]
+        : null;
+      const isHit = fugitiveStadium === hunterStadium;
+      return isHit
+        ? Object.entries(STADIUM_GROUPS_PREVIEW).filter(([n]) => n !== hunterStadium).flatMap(([, s]) => s)
+        : STADIUM_GROUPS_PREVIEW[hunterStadium] || [];
+    }
+    return [];
+  })();
+  const allDiscarded = [...new Set([...discarded, ...stadiumDiscarded, ...turiaDiscarded, ...previewDiscarded])];
   const fugitiveStation = game.fugitive_station;
   const hideRadius = game.hide_radius_m || 150;
   const lineStationIds = new Set(lines.flatMap(l => l.station_ids || []));
@@ -195,11 +282,11 @@ export default function MapView({ game, myRole, gameId, radarPreview }) {
         <Lines lines={lines} stationMap={stationMap} />
 
         {visibleStations.map((st) => {
-          const isDiscarded = discarded.includes(st.id);
+          const isDiscarded = allDiscarded.includes(st.id);
           const isHideout = myRole === "fugitive" && fugitiveStation === st.id;
           const numLines = (st.lines || []).length;
           const radius = numLines >= 4 ? 8 : numLines >= 2 ? 6 : 5;
-          const fillColor = isDiscarded ? "#555" : isHideout ? "#00e676" : "#fff";
+          const fillColor = isDiscarded ? "#c0392b" : isHideout ? "#00e676" : "#fff";
           return (
             <CircleMarker key={st.id} center={[st.lat, st.lon]}
               radius={radius} color="#222" fillColor={fillColor} fillOpacity={1} weight={1.5}
@@ -219,13 +306,14 @@ export default function MapView({ game, myRole, gameId, radarPreview }) {
             radius={hideRadius} color="#00e676" fillOpacity={0.1} />
         )}
 
-        {Object.entries(players).map(([pid, p]) => {
+        {/* Other players: fugitive sees hunter, hunter sees nobody else */}
+        {myRole === "fugitive" && Object.entries(players).map(([pid, p]) => {
           if (!p.lat || pid === String(user?.id)) return null;
-          if (myRole === "hunter") return null;
+          if (p.role !== "hunter") return null; // fugitive only sees hunter
           return (
             <CircleMarker key={pid} center={[p.lat, p.lon]} radius={9}
               color="#fff" weight={2} fillColor="#E74C3C" fillOpacity={0.9}>
-              <Popup>{p.username}</Popup>
+              <Popup>🎯 {p.username} (cazador)</Popup>
             </CircleMarker>
           );
         })}
@@ -233,8 +321,20 @@ export default function MapView({ game, myRole, gameId, radarPreview }) {
         <OwnLocationMarker />
         <LocateButton />
 
+        {/* Turia river line — visible during turia preview or after overlay applied */}
+        {((stadiumPreview && !Array.isArray(stadiumPreview) && stadiumPreview.previewType?.startsWith('turia')) ||
+          (game.radar_overlays || []).some(o => o.type === 'turia')) && (
+          <Polyline positions={TURIA_POINTS} pathOptions={{ color:'#4A90E2', weight:3, opacity:0.8, dashArray:'8 4' }} />
+        )}
+
+        {/* Stadium preview markers — only for stadium preview */}
+        {stadiumPreview && (Array.isArray(stadiumPreview) || stadiumPreview.previewType === 'stadium' || stadiumPreview.hunter_stadium) && (
+          <StadiumPreviewLayer stadiumPreview={stadiumPreview} />
+        )}
+
         {/* Radar overlays — accumulated, visible to all */}
         {(game.radar_overlays || []).map((o, i) => {
+          if (o.type === "stadium" || o.type === "turia") return null;
           if (!o.inside) return (
             <Circle key={i} center={[o.hunter_lat, o.hunter_lon]} radius={o.radius_m}
               pathOptions={{ color:'#e74c3c', weight:3, fillColor:'#e74c3c', fillOpacity:0.25 }} />
@@ -259,9 +359,15 @@ export default function MapView({ game, myRole, gameId, radarPreview }) {
           );
         })}
         {radarPreview && (
-          <Circle center={[radarPreview.hunter_lat, radarPreview.hunter_lon]}
-            radius={radarPreview.radar_radius_m}
-            pathOptions={{ color:'#e74c3c', weight:2, fill:false, dashArray:'6' }} />
+          <>
+            <Circle center={[radarPreview.hunter_lat, radarPreview.hunter_lon]}
+              radius={radarPreview.radar_radius_m}
+              pathOptions={{ color:'#e74c3c', weight:2, fill:false, dashArray:'6' }} />
+            <CircleMarker center={[radarPreview.hunter_lat, radarPreview.hunter_lon]} radius={8}
+              color="#333" weight={2} fillColor="#e74c3c" fillOpacity={1}>
+              <Popup>📍 Cazador</Popup>
+            </CircleMarker>
+          </>
         )}
       </MapContainer>
     </>

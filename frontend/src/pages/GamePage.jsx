@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 import { useStore } from "../store";
@@ -17,6 +17,7 @@ export default function GamePage() {
   const [tab, setTab] = useState("map");
   const [ending, setEnding] = useState(false);
   const [radarPreview, setRadarPreview] = useState(null);
+  const [stadiumPreview, setStadiumPreview] = useState(null);
   const [exploringMap, setExploringMap] = useState(false);
 
   useEffect(() => {
@@ -24,6 +25,16 @@ export default function GamePage() {
     const hand = game.players?.[String(user?.id)]?.hand || [];
     if (hand.length > 5) setTab("cards");
   }, [game?.players]);
+
+  // Auto-switch to map after fugitive claims reward (pending_question cleared)
+  const prevPendingRef = useRef(null);
+  useEffect(() => {
+    if (myRole !== "fugitive") return;
+    const prev = prevPendingRef.current;
+    const curr = game?.pending_question;
+    if (prev && !curr) setTab("map"); // was pending, now null → reward claimed
+    prevPendingRef.current = curr;
+  }, [game?.pending_question]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -91,7 +102,13 @@ export default function GamePage() {
         {myRole === "fugitive" && !exploringMap && (
           <FugitiveNotification game={game} gameId={gameId}
             onShowRadarPreview={(pending) => {
-              setRadarPreview(pending);
+              if (pending.previewType === 'stadium') {
+                setStadiumPreview(pending);
+                setRadarPreview(null);
+              } else {
+                setRadarPreview(pending);
+                setStadiumPreview(null);
+              }
               setExploringMap(true);
               setTab("map");
             }} />
@@ -103,17 +120,37 @@ export default function GamePage() {
       </div>
 
       <div className="tab-content">
-        {tab === "map" && <MapView game={game} myRole={myRole} gameId={gameId} radarPreview={radarPreview} />}
-        {!exploringMap && tab === "questions" && myRole === "hunter" && <QuestionsView game={game} gameId={gameId} onShowMap={() => setTab("map")} />}
+        {tab === "map" && <MapView game={game} myRole={myRole} gameId={gameId} radarPreview={radarPreview} stadiumPreview={stadiumPreview} />}
+        {!exploringMap && tab === "questions" && myRole === "hunter" && (
+          <QuestionsView game={game} gameId={gameId}
+            onShowMap={() => setTab("map")}
+            onPreviewRadar={(p) => { setRadarPreview(p); setExploringMap(true); setTab("map"); }}
+            onPreviewStadiums={(s) => {
+              setStadiumPreview(s);
+              setExploringMap(true);
+              setTab("map");
+            }} />
+        )}
         {!exploringMap && tab === "cards" && myRole === "fugitive" && <CardsView game={game} gameId={gameId} />}
-        {!exploringMap && tab === "ranking" && <RankingView />}
+        {!exploringMap && tab === "ranking" && <RankingView game={game} />}
       </div>
 
       {exploringMap ? (
-        <button className="explore-back-btn"
-          onClick={() => { setExploringMap(false); setRadarPreview(null); }}>
-          ← Volver
-        </button>
+        <>
+          {stadiumPreview && !Array.isArray(stadiumPreview) && (stadiumPreview.hunter_stadium || stadiumPreview.previewType === 'turia') && (
+            <div style={{ background: stadiumPreview.is_hit ? '#1a3a1a' : '#3a1a1a', padding: '0.4rem 1rem', textAlign: 'center', fontSize: '0.9rem', borderTop: `2px solid ${stadiumPreview.is_hit ? '#00e676' : '#e74c3c'}` }}>
+              {stadiumPreview.previewType === 'turia'
+                ? (stadiumPreview.is_hit ? '🎯 IT\'S A HIT — Más cerca del Turia' : '💨 IT\'S A MISS — Más lejos del Turia')
+                : (stadiumPreview.is_hit ? '🎯 IT\'S A HIT — Estadio: ' : '💨 IT\'S A MISS — Estadio: ')
+              }
+              {stadiumPreview.hunter_stadium && <strong>{stadiumPreview.hunter_stadium}</strong>}
+            </div>
+          )}
+          <button className="explore-back-btn"
+            onClick={() => { setExploringMap(false); setRadarPreview(null); setStadiumPreview(null); setTab(myRole === "hunter" ? "questions" : "map"); }}>
+            ← Volver
+          </button>
+        </>
       ) : (
         <nav className="bottom-nav">
           {tabs.map((t) => (

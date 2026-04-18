@@ -6,6 +6,34 @@ from app.routers.auth import get_current_user
 from app.models import User
 import random as _random
 
+STADIUM_GROUPS = {
+    "Nou Mestalla": ["aeroport","av_cid","benaguasil","benicalap","beniferri","benimamet","burjassot","burjassot_godella","betera","campament","campanar","campus","cantereria","carolines_fira","el_clot","empalme","entrepins","faitanar","fuente_jarro","torre_virrey","garbi","godella","horta_vella","eliana","la_canyada","la_coma","la_vallesa","pobla_vallbona","lliria","manises","mas_rosari","masies","massarrojos","mislata","mislata_almassil","montesol","nou_octubre","palau_congressos","paterna","quart_poblet","riba_roja","masia_traver","valencia_la_vella","la_presa","la_cova","fondo_benaguasil","gallipont_torre_virrey","font_barranc","ll_llarga","tomas_valiente","santa_gemma","a_punt","sant_joan","la_granja","rocafort","rosas","salt_aigua","santa_rita","torrent","torrent_avinguda","turia","v_andres_estelles","vicent_andres","angel_guimera","tvv","reus","marxalenes","transits","florista","fira_valencia"],
+    "Roig Arena": ["alacant","alberic","alginet","amado_granell","ausias_march_carlet","benimodo","carlet","castello","ciudad_arts","ciutat_arts","collegi_vedat","font_almaguer","jesus","masalaves","montortal","moreres","natzaret","oceanografic","omet","paiporta","patraix","picanya","picassent","quatre_carreres","realon","espioca","l_alcudia","bailen","safranar","sant_isidre","sant_ramon","valencia_sud","joaquin_sorolla"],
+    "Mestalla": ["alameda","amistat","aragon","ayora","colon","dr_lluch","facultats","grau_marina","grau_canyamelar","la_cadena","la_carrasca","maritim","neptu","placa_espanya","pont_fusta","russafa","tarongers","univ_politecnica","vicent_zaragoza","xativa","serradora","eugenia_vines","les_arenes","mediterrani","cabanyal","betero","platja_malva_rosa","platja_les_arenes","canyamelar","francesc_cubells"],
+    "Estadi Ciutat de Valencia": ["albalat_sorells","alboraya_palmaret","alboraya_peris","alfauir","almassera","benimaclet","estadi_ciutat","foios","pobla_farnals","machado","massamagrell","meliana","moncada_alfara","museros","orriols","primat_reig","rafelbunyol","sant_miquel_reis","seminari_ceu","tossal_rei","trinitat","sagunt"],
+}
+
+TURIA_POINTS = [(39.473901844336275,-0.40580977380914257),(39.475875111148056,-0.39650531107182324),(39.47798076891964,-0.39103464995848797),(39.48107653918475,-0.3834406055526129),(39.48220327431968,-0.38028502205102055),(39.48125863905595,-0.3770557099638838),(39.478629526317334,-0.37210114895394597),(39.47609137083586,-0.3683704824788944),(39.47323441236276,-0.365952184842581),(39.47037733658648,-0.36356337864147575),(39.46605165997359,-0.3612188095918059),(39.463023526335526,-0.35946406923399743),(39.4608149547715,-0.35776831174492707),(39.45916417258277,-0.3543473053361762),(39.45755889162093,-0.35157511048480977),(39.455008581954985,-0.34775596970500783),(39.45412050577638,-0.34495428342197915),(39.45425713361816,-0.3421378514216714)]
+
+def dist_to_segment(p, a, b):
+    from math import cos, radians, sqrt
+    cosLat = cos(radians(a[0]))
+    ax, ay = (a[1]-p[1])*111000*cosLat, (a[0]-p[0])*111000
+    bx, by = (b[1]-p[1])*111000*cosLat, (b[0]-p[0])*111000
+    dx, dy = bx-ax, by-ay
+    t = max(0, min(1, -(ax*dx+ay*dy)/(dx*dx+dy*dy+1e-10)))
+    return sqrt((ax+t*dx)**2+(ay+t*dy)**2)
+
+def dist_to_turia(lat, lon):
+    return min(dist_to_segment((lat,lon), TURIA_POINTS[i], TURIA_POINTS[i+1]) for i in range(len(TURIA_POINTS)-1))
+
+STADIUMS = [
+    {"name": "Mestalla", "lat": 39.4747, "lon": -0.3583},
+    {"name": "Nou Mestalla", "lat": 39.4894, "lon": -0.3964},
+    {"name": "Estadi Ciutat de Valencia", "lat": 39.4947, "lon": -0.3642},
+    {"name": "Roig Arena", "lat": 39.4492, "lon": -0.3642},
+]
+
 router = APIRouter()
 
 QUESTION_REWARDS = {
@@ -79,6 +107,54 @@ async def ask_question(body: AskQuestion, user: User = Depends(get_current_user)
             }
         })
         return {"question_id": body.question_id, "category": "radar", "answer": None, "reward": reward, "pending": True}
+
+    # For match_turia: store hunter's distance to river
+    if body.question_id == "match_turia":
+        hunter_data = game["players"].get(str(user.id), {})
+        hunter_lat = hunter_data.get("lat")
+        hunter_lon = hunter_data.get("lon")
+        if not hunter_lat:
+            raise HTTPException(status_code=400, detail="Ubicación del cazador no disponible")
+        hunter_dist = dist_to_turia(hunter_lat, hunter_lon)
+        await game_doc.reference.update({
+            "pending_question": {
+                "question_id": body.question_id,
+                "category": "match",
+                "title": q.get("title", ""),
+                "description": q.get("description", ""),
+                "reward": reward,
+                "status": "pending",
+                "answer": None,
+                "asked_by": str(user.id),
+                "hunter_turia_dist": hunter_dist,
+                "hunter_lat": hunter_lat,
+                "hunter_lon": hunter_lon,
+            }
+        })
+        return {"question_id": body.question_id, "category": "match", "answer": None, "reward": reward, "pending": True}
+
+    # For match_stadium: store hunter's nearest stadium
+    if body.question_id == "match_stadium":
+        hunter_data = game["players"].get(str(user.id), {})
+        hunter_lat = hunter_data.get("lat")
+        hunter_lon = hunter_data.get("lon")
+        if not hunter_lat:
+            raise HTTPException(status_code=400, detail="Ubicación del cazador no disponible")
+        nearest = min(STADIUMS, key=lambda s: haversine(hunter_lat, hunter_lon, s["lat"], s["lon"]))
+        await game_doc.reference.update({
+            "pending_question": {
+                "question_id": body.question_id,
+                "category": "match",
+                "title": q.get("title", ""),
+                "description": q.get("description", ""),
+                "reward": reward,
+                "status": "pending",
+                "answer": None,
+                "asked_by": str(user.id),
+                "hunter_stadium": nearest["name"],
+            }
+        })
+        return {"question_id": body.question_id, "category": "match", "answer": None, "reward": reward, "pending": True}
 
     # For match/photo: store as pending, fugitive must respond
     await game_doc.reference.update({
@@ -176,6 +252,52 @@ async def respond_question(body: RespondQuestion, user: User = Depends(get_curre
             "used_questions": game.get("used_questions", []) + [pending["question_id"]],
             "radar_overlays": overlays,
             "radar_pending_result": {"answer": answer, "radius_m": pending["radar_radius_m"]},
+        })
+        return {"action": "answered", "answer": answer, "reward": pending.get("reward")}
+
+    # match_turia: compare fugitive station distance to river vs hunter distance
+    if pending.get("question_id") == "match_turia":
+        fugitive_station_id = game.get("fugitive_station")
+        if not fugitive_station_id:
+            raise HTTPException(status_code=400, detail="Fugitivo no tiene estación seleccionada")
+        st = await db.collection("metro_stations").document(fugitive_station_id).get()
+        st_data = st.to_dict()
+        fugitive_dist = dist_to_turia(st_data["lat"], st_data["lon"])
+        hunter_dist = pending["hunter_turia_dist"]
+        answer = fugitive_dist <= hunter_dist  # fugitive closer to river
+        overlay = {"type": "turia", "hunter_dist": hunter_dist, "inside": answer}
+        overlays = game.get("radar_overlays", []) + [overlay]
+        await game_doc.reference.update({
+            "pending_question": {**pending, "status": "answered", "answer": answer},
+            "used_questions": game.get("used_questions", []) + [pending["question_id"]],
+            "radar_overlays": overlays,
+            "radar_pending_result": {"answer": answer, "turia_dist": round(hunter_dist)},
+        })
+        return {"action": "answered", "answer": answer, "reward": pending.get("reward")}
+
+    # match_stadium: compute fugitive's nearest stadium using station
+    if pending.get("question_id") == "match_stadium":
+        fugitive_station_id = game.get("fugitive_station")
+        if not fugitive_station_id:
+            raise HTTPException(status_code=400, detail="Fugitivo no tiene estación seleccionada")
+        hunter_stadium = pending["hunter_stadium"]
+        # Find fugitive's stadium group
+        fugitive_stadium = next((name for name, stations in STADIUM_GROUPS.items() if fugitive_station_id in stations), None)
+        answer = fugitive_stadium == hunter_stadium
+        # Overlay: stations to discard (all stations NOT in hunter's group if miss, none if hit)
+        if answer:
+            # Hit: fugitive is in same zone — discard all other zones
+            discarded = [s for name, stations in STADIUM_GROUPS.items() if name != hunter_stadium for s in stations]
+        else:
+            # Miss: fugitive is NOT in hunter's zone — discard hunter's zone
+            discarded = STADIUM_GROUPS.get(hunter_stadium, [])
+        overlay = {"type": "stadium", "stadium": hunter_stadium, "inside": answer, "discarded_stations": discarded}
+        overlays = game.get("radar_overlays", []) + [overlay]
+        await game_doc.reference.update({
+            "pending_question": {**pending, "status": "answered", "answer": answer},
+            "used_questions": game.get("used_questions", []) + [pending["question_id"]],
+            "radar_overlays": overlays,
+            "radar_pending_result": {"answer": answer, "stadium": hunter_stadium},
         })
         return {"action": "answered", "answer": answer, "reward": pending.get("reward")}
 

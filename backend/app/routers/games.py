@@ -165,6 +165,9 @@ async def caught(game_id: str, user: User = Depends(get_current_user)):
         "hide_radius_m": 150,
         "hide_start": datetime.now(timezone.utc).isoformat(),
         "hunt_start": None,
+        "radar_overlays": [],
+        "radar_pending_result": None,
+        "pending_question": None,
         **player_updates,
     })
     return {"status": "next_round", "round": next_round}

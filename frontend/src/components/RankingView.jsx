@@ -1,29 +1,32 @@
-import { useEffect, useState } from "react";
-import api from "../api";
+const MEDALS = ["🥇", "🥈", "🥉"];
+const MEDAL_COLORS = ["#FFD700", "#C0C0C0", "#CD7F32"];
 
-export default function RankingView() {
-  const [ranking, setRanking] = useState([]);
+const fmt = (s) => {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+};
 
-  useEffect(() => {
-    api.get("/players/ranking").then(({ data }) => setRanking(data)).catch(() => {});
-  }, []);
-
-  const fmt = (s) => {
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    return h > 0 ? `${h}h ${m}m` : `${m}m`;
-  };
+export default function RankingView({ game }) {
+  const scores = game?.scores || {};
+  const players = game?.players || {};
+  const ranking = Object.entries(scores)
+    .map(([pid, secs]) => ({ username: players[pid]?.username || `Jugador ${pid}`, secs }))
+    .sort((a, b) => b.secs - a.secs);
 
   return (
     <div className="ranking-view">
-      <h3>🏆 Ranking global</h3>
-      {ranking.length === 0 && <p>Aún no hay partidas registradas</p>}
-      <ol>
+      <h3>🏆 Ranking</h3>
+      {ranking.length === 0 && <p style={{ color: '#aaa' }}>Aún no hay rondas completadas</p>}
+      <ol className="ranking-list">
         {ranking.map((r, i) => (
-          <li key={r.username}>
-            <span className="rank-pos">{i + 1}</span>
+          <li key={r.username} className="ranking-item">
+            <span className="rank-medal" style={{ color: MEDAL_COLORS[i] || "#aaa" }}>
+              {MEDALS[i] || `${i+1}`}
+            </span>
             <span className="rank-name">{r.username}</span>
-            <span className="rank-time">{fmt(r.total_seconds)}</span>
+            <span className="rank-time">{fmt(r.secs)}</span>
           </li>
         ))}
       </ol>
